@@ -1,6 +1,29 @@
 from AlgoAPI import AlgoAPIUtil, AlgoAPI_Backtest
 
 class AlgoEvent:
+    
+    # Open Jake Liu
+    def # to be modified
+    
+    
+    
+    
+    # High HZ
+    def # to be modified
+    
+    
+    
+    
+    # Low Zhou yAng
+    def # to be modified
+    
+    
+    
+    # Close KS dog
+    def # to be modified
+    
+    
+    
     def __init__(self):
         pass
         
