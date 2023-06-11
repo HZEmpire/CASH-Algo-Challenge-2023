@@ -2,27 +2,49 @@ from AlgoAPI import AlgoAPIUtil, AlgoAPI_Backtest
 
 class AlgoEvent:
     
-    # Open Jake Liu
-    def # to be modified
+    # Open Price
+    def getOpenPrice(self, instrument, days, endtime):
+        contract = {"instrument": instrument}
+        res = self.evt.getHistoricalBar(contract, days, 'D', endtime)
+        openprices = []
+        for t in res:
+            timestamp = t
+            lastprice = res[t]['o']
+            openprices.append((timestamp, lastprice))
+        return openprices
     
+    # High Price
+    def getHighPrice(self, instrument, days, endtime):
+        contract = {"instrument": instrument}
+        res = self.evt.getHistoricalBar(contract, days, 'D', endtime)
+        highprices = []
+        for t in res:
+            timestamp = t
+            lastprice = res[t]['h']
+            highprices.append((timestamp, lastprice))
+        return highprices
     
+    # Low Price
+    def getLowPrice(self, instrument, days, endtime):
+        contract = {"instrument": instrument}
+        res = self.evt.getHistoricalBar(contract, days, 'D', endtime)
+        lowprices = []
+        for t in res:
+            timestamp = t
+            lastprice = res[t]['l']
+            lowprices.append((timestamp, lastprice))
+        return lowprices
     
-    
-    # High HZ
-    def # to be modified
-    
-    
-    
-    
-    # Low Zhou yAng
-    def # to be modified
-    
-    
-    
-    # Close KS dog
-    def # to be modified
-    
-    
+    # Close Price
+    def getClosePrice(self, instrument, days, endtime):
+        contract = {"instrument": instrument}
+        res = self.evt.getHistoricalBar(contract, days, 'D', endtime)
+        closeprices = []
+        for t in res:
+            timestamp = t
+            lastprice = res[t]['c']
+            closeprices.append((timestamp, lastprice))
+        return closeprices
     
     def __init__(self):
         pass
