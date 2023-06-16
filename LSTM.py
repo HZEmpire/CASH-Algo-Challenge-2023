@@ -1,0 +1,330 @@
+
+
+from AlgoAPI import AlgoAPIUtil, AlgoAPI_Backtest
+from statsmodels.tsa.arima.model import ARIMA
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+from torch.autograd import Variable
+from sklearn import preprocessing
+from sklearn.preprocessing import MinMaxScaler
+#from pandas.core.Frame import DataFrame
+class AlgoEvent:
+    
+    
+    # Open Price
+    def getOpenPrice(self, instrument, days, endtime):
+        contract = {"instrument": instrument}
+        res = self.evt.getHistoricalBar(contract, days, 'D', endtime)
+        openprices = []
+        timestamps = []
+        for t in res:
+            timestamp = t
+            lastprice = res[t]['o']
+            openprices.append(lastprice)
+            timestamps.append(timestamp)
+        return openprices, timestamps
+    
+    # High Price
+    def getHighPrice(self, instrument, days, endtime):
+        contract = {"instrument": instrument}
+        res = self.evt.getHistoricalBar(contract, days, 'D', endtime)
+        highprices = []
+        timestamps = []
+        for t in res:
+            timestamp = t
+            lastprice = res[t]['h']
+            highprices.append(lastprice)
+            timestamps.append(timestamp)
+        return highprices, timestamps
+    
+    # Low Price
+    def getLowPrice(self, instrument, days, endtime):
+        contract = {"instrument": instrument}
+        res = self.evt.getHistoricalBar(contract, days, 'D', endtime)
+        lowprices = []
+        timestamps = []
+        for t in res:
+            timestamp = t
+            lastprice = res[t]['l']
+            lowprices.append(lastprice)
+            timestamps.append(timestamp)
+        return lowprices, timestamps
+    
+    # Close Price
+    def getClosePrice(self, instrument, days, endtime):
+        contract = {"instrument": instrument}    
+        res = self.evt.getHistoricalBar(contract, days, 'D', endtime)
+        closeprices = []
+        timestamps = []
+        for t in res:
+            timestamp = t
+            lastprice = res[t]['c']
+            closeprices.append(lastprice)
+            timestamps.append(timestamp)
+        return closeprices, timestamps
+    
+    # ARIMA model for close price pridiction
+    def getARIMA(self, instrument, closeprices):
+        low_AIC = np.inf
+        best_ar = 1
+        best_ma = 0
+        best_diff = 0
+        for ar in range(1, 8):
+            for ma in range(5):
+                for diff in range(2):
+                    try:
+                        model = ARIMA(closeprices, order=(ar, diff, ma))
+                        model_fit = model.fit()
+                        if model_fit.aic < low_AIC:
+                            low_AIC = model_fit.aic
+                            best_ar = ar
+                            best_ma = ma
+                            best_diff = diff
+                    except:
+                        continue
+        params = (best_ar, best_diff, best_ma)
+        return params
+    
+    def __init__(self):
+        # Get initial past 200 days close price data
+        self.openprices = None
+        self.highprices = None
+        self.lowprices = None
+        self.closeprices = None
+
+        # Initialize ARIMA model
+        self.ARIMAparams = None
+        
+        # Initialize the ARIMA prediction for next day close price
+        self.ARIMA_prediction = None
+        
+    def start(self, mEvt):
+        self.evt = AlgoAPI_Backtest.AlgoEvtHandler(self, mEvt)
+
+        # Get initial past 200 days close price data
+        #self.closeprices, timestamps = self.getClosePrice('00001HK', 200, None)
+        
+        # Initialize ARIMA model
+        #self.ARIMAparams = self.getARIMA('00001HK', self.closeprices)
+        #self.evt.consoleLog('ARIMA parameters: ' + str(self.ARIMAparams))
+        
+        # Initialize the first ARIMA prediction
+        #model = ARIMA(self.closeprices, order=self.ARIMAparams)
+        #model_fit = model.fit()
+        #self.ARIMA_prediction = model_fit.forecast(steps=1)[0]
+
+        self.evt.start()
+        open_1, t = self.getOpenPrice('00001HK', 300, None)
+        #self.evt.consoleLog('open price: ')
+        #self.evt.consoleLog(open_1, t)
+        high_1, t = self.getHighPrice('00001HK', 300, None)
+        #self.evt.consoleLog('high price: ')
+        #self.evt.consoleLog(high_1, t)
+        low_1, t = self.getLowPrice('00001HK', 300, None)
+        #self.evt.consoleLog('low price: ')
+        #self.evt.consoleLog(low_1, t)
+        close_1, t = self.getClosePrice('00001HK', 300, None)
+        #self.evt.consoleLog('close price: ')
+        #self.evt.consoleLog(close_1, t)
+        data_all = {'open' : open_1[0:299],
+                    'high' : high_1[0:299],
+                    'low'  : low_1[0:299],
+                    'close': close_1[0:299],
+                    'target': close_1[1:300]
+        }
+        df_main = pd.DataFrame(data_all)
+        scaler = MinMaxScaler(feature_range=(-1, 1))
+        sel_col = ['open', 'high', 'low', 'close', 'target']
+        for col in sel_col:
+            df_main[col] = scaler.fit_transform(df_main[col].values.reshape(-1,1))
+            
+        
+        df_main = df_main.astype(np.float32)
+        data_raw = df_main
+        seq = 10
+        test_set_size = int(np.round(0.1*data_raw.shape[0]))
+        # generate train & test dataset
+        #feat,target = create_seq_data(data_raw,seq)
+        
+        data_feat,data_target = [],[]
+        for index in range(len(data_raw) - seq):
+            data_feat.append(data_raw[['open', 'high', 'low', 'close']][index: index + seq].values)
+            data_target.append(data_raw['target'][index:index + seq])
+        feat = np.array(data_feat)
+        target = np.array(data_target)
+        
+        #trainX,trainY,testX,testY = train_test(feat,target,test_set_size,seq)
+        train_size = feat.shape[0] - (test_set_size) 
+        trainX = torch.from_numpy(feat[:train_size].reshape(-1,seq,4)).type(torch.Tensor)
+        testX  = torch.from_numpy(feat[train_size:].reshape(-1,seq,4)).type(torch.Tensor)
+        trainY = torch.from_numpy(target[:train_size].reshape(-1,seq,1)).type(torch.Tensor)
+        testY  = torch.from_numpy(target[train_size:].reshape(-1,seq,1)).type(torch.Tensor)
+        
+        self.evt.consoleLog('x_train.shape = ',trainX.shape)
+        self.evt.consoleLog('y_train.shape = ',trainY.shape)
+        self.evt.consoleLog('x_test.shape = ',testX.shape)
+        self.evt.consoleLog('y_test.shape = ',testY.shape)
+        
+        n_steps = seq
+        batch_size = 259
+        num_epochs = 40
+        
+        train = torch.utils.data.TensorDataset(trainX,trainY)
+        test = torch.utils.data.TensorDataset(testX,testY)
+        train_loader = torch.utils.data.DataLoader(dataset=train, 
+                                           batch_size=batch_size, 
+                                           shuffle=False)
+
+        test_loader = torch.utils.data.DataLoader(dataset=test, 
+                                          batch_size=batch_size, 
+                                          shuffle=False)
+        
+        input_dim = 4
+        hidden_dim = 20
+        num_layers = 2 
+        output_dim = 1
+        
+        class LSTM(nn.Module):
+            def __init__(self, input_dim, hidden_dim, num_layers, output_dim):
+                super(LSTM, self).__init__()
+                # Hidden dimensions
+                self.hidden_dim = hidden_dim
+
+                # Number of hidden layers
+                self.num_layers = num_layers
+
+                # Building your LSTM
+                # batch_first=True causes input/output tensors to be of shape
+                # (batch_dim, seq_dim, feature_dim)
+                self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
+
+                # Readout layer
+                self.fc = nn.Linear(hidden_dim, output_dim)
+
+            def forward(self, x):
+                 # Initialize hidden state with zeros
+                h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_dim).requires_grad_()
+
+                # Initialize cell state
+                c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_dim).requires_grad_()
+
+                # One time step
+                # We need to detach as we are doing truncated backpropagation through time (BPTT)
+                # If we don't, we'll backprop all the way to the start even after going through another batch
+                out, (hn, cn) = self.lstm(x, (h0.detach(), c0.detach()))
+
+                out = self.fc(out) 
+                # out.size() --> 100, 10
+                return out
+        
+        
+        model = LSTM(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, num_layers=num_layers)
+
+        loss_fn = torch.nn.MSELoss(size_average=True)
+
+        optimiser = torch.optim.Adam(model.parameters(), lr=0.01)
+        self.evt.consoleLog(model)
+        self.evt.consoleLog(len(list(model.parameters())))
+        for i in range(len(list(model.parameters()))):
+            self.evt.consoleLog(list(model.parameters())[i].size())
+            
+        
+         
+        hist = np.zeros(num_epochs)
+        seq_dim = seq
+        for t in range(num_epochs):
+            # Initialise hidden state
+            # Don't do this if you want your LSTM to be stateful
+            #model.hidden = model.init_hidden()
+    
+            # Forward pass
+            y_train_pred = model(trainX)
+
+            loss = loss_fn(y_train_pred, trainY)
+            if t % 10 == 0 and t !=0:
+                self.evt.consoleLog("Epoch ", t, "MSE: ", loss.item())
+            hist[t] = loss.item()
+
+            # Zero out gradient, else they will accumulate between epochs
+            optimiser.zero_grad()
+
+            # Backward pass
+            loss.backward()
+
+            # Update parameters
+            optimiser.step()
+        
+        
+        p = y_train_pred.detach().numpy()[:,-1,0]
+        trainY_target = trainY.detach().numpy()[:,-1,0]
+        y_test_pred = model(testX)
+        y_train_pred.detach().numpy()[:,-1,0]
+        y_train_pred = scaler.inverse_transform(y_train_pred.detach().numpy()[:,-1,0].reshape(-1,1))
+        y_train = scaler.inverse_transform(trainY.detach().numpy()[:,-1,0].reshape(-1,1))
+        y_test_pred = scaler.inverse_transform(y_test_pred.detach().numpy()[:,-1,0].reshape(-1,1))
+        y_test = scaler.inverse_transform(testY.detach().numpy()[:,-1,0].reshape(-1,1))
+        
+        
+        # calculate root mean squared error
+        trainScore = math.sqrt(mean_squared_error(y_train, y_train_pred))
+        self.evt.consoleLog('Train Score: %.2f RMSE' % (trainScore))
+        testScore = math.sqrt(mean_squared_error(y_test, y_test_pred))
+        self.evt.consoleLog('Test Score: %.2f RMSE' % (testScore))
+
+    def on_bulkdatafeed(self, isSync, bd, ab):
+        pass
+        # Add new close price data
+        #todayclose, today = self.getClosePrice('00001HK', 1, None)
+        #self.closeprices = self.closeprices + todayclose
+        #self.evt.consoleLog(todayclose, today)
+        # --------------------------------------------
+        # ARIMA prediction
+        # Compare the prediction with the real close price
+        #self.evt.consoleLog('ARIMA prediction: ' + str(self.ARIMA_prediction))
+        #self.evt.consoleLog('Real close price: ' + str(todayclose))
+        #if self.ARIMA_prediction > self.closeprices[-2] and todayclose[0] > self.closeprices[-2]:
+            #self.evt.consoleLog('True prediction')
+        #elif self.ARIMA_prediction < self.closeprices[-2] and todayclose[0] < self.closeprices[-2]:
+            #self.evt.consoleLog('True prediction')
+        #else:
+            #self.evt.consoleLog('False prediction')
+        #self.evt.consoleLog(' ')
+
+        # Fit data into the ARIMA model and do prediction
+        #model = ARIMA(self.closeprices, order=self.ARIMAparams)
+        #model_fit = model.fit()
+
+        # Do one step prediction
+        #ARIMA_prediction = model_fit.forecast(steps=1)[0]
+
+        # Update the prediction
+        #self.ARIMA_prediction = ARIMA_prediction
+        # --------------------------------------------
+    
+    def on_marketdatafeed(self, md, ab):
+        pass
+
+    def on_newsdatafeed(self, nd):
+        pass
+
+    def on_weatherdatafeed(self, wd):
+        pass
+    
+    def on_econsdatafeed(self, ed):
+        pass
+        
+    def on_corpAnnouncement(self, ca):
+        pass
+
+    def on_orderfeed(self, of):
+        pass
+
+    def on_dailyPLfeed(self, pl):
+        pass
+
+    def on_openPositionfeed(self, op, oo, uo):
+        pass
+
+
