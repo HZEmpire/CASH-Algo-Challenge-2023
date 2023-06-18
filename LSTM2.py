@@ -288,7 +288,7 @@ class AlgoEvent:
         todayclose, today = self.getClosePrice('00001HK', 2, None)
         # Compare the prediction with the real close price
         self.evt.consoleLog('LSTM prediction: ' + str(self.LSTM_prediction))
-        self.evt.consoleLog('Real close price: ' + str(todayclose))
+        self.evt.consoleLog('Real close price[The day before, The day]: ' + str(todayclose))
         if self.LSTM_prediction > todayclose[-2] and todayclose[-1] > todayclose[-2]:
             self.evt.consoleLog('True prediction')
         elif self.LSTM_prediction < todayclose[-2] and todayclose[-1] < todayclose[-2]:
@@ -366,8 +366,6 @@ class AlgoEvent:
         last_seq = torch.from_numpy(last_seq.reshape(-1,seq,4)).type(torch.Tensor)
         last_seq_pred = self.model(last_seq)
         last_seq_pred = scaler.inverse_transform(last_seq_pred.detach().numpy()[:,-1,0].reshape(-1,1))
-
-        self.evt.consoleLog('last_seq_pred: ', last_seq_pred)
 
         # --------------------------------------------
         # end of LSTM
