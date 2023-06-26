@@ -177,12 +177,13 @@ class AlgoEvent:
         close_1, t = self.getClosePrice(self.myinstrument, 300, None)
         #self.evt.consoleLog('close price: ')
         #self.evt.consoleLog(close_1, t)
-        data_all = {'open' : open_1[0:299],
-                    'high' : high_1[0:299],
-                    'low'  : low_1[0:299],
-                    'close': close_1[0:299],
+        data_len = len(close_1)
+        data_all = {'open' : open_1[0:data_len],
+                    'high' : high_1[0:data_len],
+                    'low'  : low_1[0:data_len],
+                    'close': close_1[0:data_len],
                     # target: from 1 to 300 if close price is higher than previous day, 0 otherwise
-                    'target': np.where(close_1[1:300] > close_1[0:299],1,0)
+                    'target': np.where(close_1[1:300] > close_1[0:299],1,0).tolist() + [0]
         }
         df_main = pd.DataFrame(data_all)
         scaler = MinMaxScaler(feature_range=(-1, 1))
@@ -194,42 +195,34 @@ class AlgoEvent:
         df_main = df_main.astype(np.float32)
         data_raw = df_main
         seq = 10
-        test_set_size = int(np.round(0.01*data_raw.shape[0]))
+        test_set_size = 0
         # generate train & test dataset
         #feat,target = create_seq_data(data_raw,seq)
         
         data_feat,data_target = [],[]
-        for index in range(len(data_raw) - seq):
+        for index in range(len(data_raw - 1) - seq):
             data_feat.append(data_raw[['open', 'high', 'low', 'close']][index: index + seq].values)
             data_target.append(data_raw['target'][index:index + seq])
+        data_pred = data_raw[['open', 'high', 'low', 'close']][-seq:].values
         feat = np.array(data_feat)
         target = np.array(data_target)
         
         #trainX,trainY,testX,testY = train_test(feat,target,test_set_size,seq)
         train_size = feat.shape[0] - (test_set_size) 
         trainX = torch.from_numpy(feat[:train_size].reshape(-1,seq,4)).type(torch.Tensor)
-        testX  = torch.from_numpy(feat[train_size:].reshape(-1,seq,4)).type(torch.Tensor)
         trainY = torch.from_numpy(target[:train_size].reshape(-1,seq,1)).type(torch.Tensor)
-        testY  = torch.from_numpy(target[train_size:].reshape(-1,seq,1)).type(torch.Tensor)
         
         self.evt.consoleLog('x_train.shape = ',trainX.shape)
         self.evt.consoleLog('y_train.shape = ',trainY.shape)
-        self.evt.consoleLog('x_test.shape = ',testX.shape)
-        self.evt.consoleLog('y_test.shape = ',testY.shape)
         
         n_steps = seq
         batch_size = 259
         num_epochs = 30
         
         train = torch.utils.data.TensorDataset(trainX,trainY)
-        test = torch.utils.data.TensorDataset(testX,testY)
         train_loader = torch.utils.data.DataLoader(dataset=train, 
                                            batch_size=batch_size, 
                                            shuffle=False)
-
-        test_loader = torch.utils.data.DataLoader(dataset=test, 
-                                          batch_size=batch_size, 
-                                          shuffle=False)
         
         input_dim = 4
         hidden_dim = 20
@@ -273,21 +266,16 @@ class AlgoEvent:
         
         p = y_train_pred.detach().numpy()[:,-1,0]
         trainY_target = trainY.detach().numpy()[:,-1,0]
-        y_test_pred = self.model(testX)
         y_train_pred.detach().numpy()[:,-1,0]
         y_train_pred = scaler.inverse_transform(y_train_pred.detach().numpy()[:,-1,0].reshape(-1,1))
         y_train = scaler.inverse_transform(trainY.detach().numpy()[:,-1,0].reshape(-1,1))
-        y_test_pred = scaler.inverse_transform(y_test_pred.detach().numpy()[:,-1,0].reshape(-1,1))
-        y_test = scaler.inverse_transform(testY.detach().numpy()[:,-1,0].reshape(-1,1))
-        
         
         # predict tomorrow
-        last_seq = feat[-1]
+        last_seq = data_pred
         last_seq = torch.from_numpy(last_seq.reshape(-1,seq,4)).type(torch.Tensor)
         last_seq_pred = self.model(last_seq)
         # print all 10 losses
-        for i in range(10):
-            self.evt.consoleLog('pred: ', last_seq_pred.detach().numpy()[:,i,0])
+        self.evt.consoleLog('pred: ', last_seq_pred.detach().numpy())
 
         last_seq_pred = last_seq_pred.detach().numpy()[:,-1,0]
 
@@ -319,11 +307,12 @@ class AlgoEvent:
         high, t = self.getHighPrice(self.myinstrument, 30, None)
         low, t = self.getLowPrice(self.myinstrument, 30, None)
         close, t = self.getClosePrice(self.myinstrument, 30, None)
-        data_all = {'open' : open[0:29],
-                    'high' : high[0:29],
-                    'low'  : low[0:29],
-                    'close': close[0:29],
-                    'target': np.where(close[1:30] > close[0:29],1,0)
+        data_len = len(close)
+        data_all = {'open' : open[0:data_len],
+                    'high' : high[0:data_len],
+                    'low'  : low[0:data_len],
+                    'close': close[0:data_len],
+                    'target': np.where(close[1:30] > close[0:29],1,0).tolist() + [0]
         }
         df_main = pd.DataFrame(data_all)
         scaler = MinMaxScaler(feature_range=(-1, 1))
@@ -338,9 +327,10 @@ class AlgoEvent:
         test_set_size = 0
 
         data_feat,data_target = [],[]
-        for index in range(len(data_raw) - seq):
+        for index in range(len(data_raw - 1) - seq):
             data_feat.append(data_raw[['open', 'high', 'low', 'close']][index: index + seq].values)
             data_target.append(data_raw['target'][index:index + seq])
+        data_pred = data_raw[['open', 'high', 'low', 'close']][-seq:].values
         feat = np.array(data_feat)
         target = np.array(data_target)
 
@@ -380,7 +370,7 @@ class AlgoEvent:
             optimiser.step()
 
         # predict tomorrow
-        last_seq = feat[-1]
+        last_seq = data_pred
         last_seq = torch.from_numpy(last_seq.reshape(-1,seq,4)).type(torch.Tensor)
         last_seq_pred = self.model(last_seq)
         last_seq_pred = last_seq_pred.detach().numpy()[:,-1,0]
