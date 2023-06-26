@@ -218,7 +218,7 @@ class AlgoEvent:
         
         n_steps = seq
         batch_size = 259
-        num_epochs = 30
+        num_epochs = 100
         
         train = torch.utils.data.TensorDataset(trainX,trainY)
         train_loader = torch.utils.data.DataLoader(dataset=train, 
@@ -231,8 +231,8 @@ class AlgoEvent:
         output_dim = 1
         self.model = LSTM(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, num_layers=num_layers)
 
-        # Cross Entropy Loss
-        loss_fn = nn.CrossEntropyLoss()
+        # Binary cross entropy loss
+        loss_fn = nn.BCELoss()
 
         optimiser = torch.optim.Adam(self.model.parameters(), lr=0.01)
         self.evt.consoleLog(self.model)
@@ -344,7 +344,7 @@ class AlgoEvent:
                                              batch_size=batch_size,
                                                 shuffle=False)
         
-        loss_fn = torch.nn.MSELoss(size_average=True)
+        loss_fn = nn.BCELoss()
         optimiser = torch.optim.Adam(self.model.parameters(), lr=0.01)
         input_dim = 4
         hidden_dim = 20
