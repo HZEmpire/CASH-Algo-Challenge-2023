@@ -27,8 +27,6 @@ class LSTM(nn.Module):
         # Readout layer
         self.fc = nn.Linear(hidden_dim, output_dim)
         
-        # Initialize reference number
-        self.ref = 0
 
     def forward(self, x):
         # Initialize hidden state with zeros
@@ -146,6 +144,9 @@ class AlgoEvent:
         
         # the credit rating for the AI model
         self.credit = 1
+        
+        # Initialize reference number
+        self.ref = 0
 
     def start(self, mEvt):
         self.evt = AlgoAPI_Backtest.AlgoEvtHandler(self, mEvt)
