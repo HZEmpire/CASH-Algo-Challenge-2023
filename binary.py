@@ -151,7 +151,7 @@ class AlgoEvent:
     def start(self, mEvt):
         self.evt = AlgoAPI_Backtest.AlgoEvtHandler(self, mEvt)
         self.myinstrument = mEvt['subscribeList'][0]
-        self.evt.consoleLog('myinstrument = ', self.myinstrument)
+        self.evt.consoleLog('myinstrument = '+str(self.myinstrument))
 
         # Get initial past 200 days close price data
         #self.closeprices, timestamps = self.getClosePrice(self.myinstrument, 200, None)
@@ -213,8 +213,8 @@ class AlgoEvent:
         trainX = torch.from_numpy(feat[:train_size].reshape(-1,seq,4)).type(torch.Tensor)
         trainY = torch.from_numpy(target[:train_size].reshape(-1,seq,1)).type(torch.Tensor)
         
-        self.evt.consoleLog('x_train.shape = ',trainX.shape)
-        self.evt.consoleLog('y_train.shape = ',trainY.shape)
+        self.evt.consoleLog('x_train.shape = '+str(trainX.shape))
+        self.evt.consoleLog('y_train.shape = '+str(trainY.shape))
         
         n_steps = seq
         batch_size = 259
@@ -276,11 +276,11 @@ class AlgoEvent:
         last_seq = torch.from_numpy(last_seq.reshape(-1,seq,4)).type(torch.Tensor)
         last_seq_pred = self.model(last_seq)
         # print all 10 losses
-        self.evt.consoleLog('pred: ', last_seq_pred.detach().numpy())
+        self.evt.consoleLog('pred: '+str(last_seq_pred.detach().numpy()))
 
         last_seq_pred = last_seq_pred.detach().numpy()[:,-1,0]
 
-        self.evt.consoleLog('last_seq_pred: ', last_seq_pred)
+        self.evt.consoleLog('last_seq_pred: '+str(last_seq_pred))
         self.LSTM_prediction = last_seq_pred
 
         self.evt.start()
@@ -377,7 +377,7 @@ class AlgoEvent:
         last_seq_pred = last_seq_pred.detach().numpy()[:,-1,0]
         self.LSTM_prediction = last_seq_pred
 
-        self.evt.consoleLog('last_seq_pred: ', last_seq_pred)
+        self.evt.consoleLog('last_seq_pred: '+str(last_seq_pred))
 
         # --------------------------------------------
         # end of LSTM
@@ -385,7 +385,7 @@ class AlgoEvent:
 
         pos, osOrder, pendOrder = self.evt.getSystemOrders()
         position = pos[self.myinstrument]["netVolume"]
-        self.evt.consoleLog('Position: ', position)
+        self.evt.consoleLog('Position: '+str(position))
 
         
 
@@ -393,20 +393,25 @@ class AlgoEvent:
         yesclose = self.getClosePrice(self.myinstrument, 1, None)
         if position == 0:
             if self.LSTM_prediction >= 0.7:
+                self.evt.consoleLog('Buy')
                 self.doit(self.instrument, 1, self.ref, 100)
         if position > 0:
             # 加仓 5%
             if self.LSTM_prediction >= 0.7:
+                self.evt.consoleLog('Buy')
                 self.doit(self.instrument, 1, self.ref, position * 0.05)
             # 减仓 30%
             elif self.LSTM_prediction <= 0.3:
+                self.evt.consoleLog('Sell')
                 self.doit(self.instrument, -1, self.ref, position * 0.3)
         if position < 0:
             # 减仓 5%
             if self.LSTM_prediction <= 0.3:
+                self.evt.consoleLog('Sell')
                 self.doit(self.instrument, -1, self.ref, position * 0.05)
             # 加仓 30%
             elif self.LSTM_prediction >= 0.7:
+                self.evt.consoleLog('Buy')
                 self.doit(self.instrument, 1, self.ref, position * 0.3)
             
             
