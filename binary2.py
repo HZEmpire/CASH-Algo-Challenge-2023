@@ -43,13 +43,7 @@ class LSTM(nn.Module):
         # out.size() --> 100, 10
         out = self.fc(out) 
 
-        # reshape output to [batch_size, 10]
-        out = out.view(-1, 10)
-
-        # reshape output to [batch_size, 1]
-        out = nn.Linear(10, 1)(out)
-
-        # Run sigmoid on output
+        # map out to 0~1
         out = torch.sigmoid(out)
 
         return out
@@ -194,7 +188,7 @@ class AlgoEvent:
         }
         df_main = pd.DataFrame(data_all)
         scaler = MinMaxScaler(feature_range=(-1, 1))
-        sel_col = ['open', 'high', 'low', 'close', 'target']
+        sel_col = ['open', 'high', 'low', 'close']
         for col in sel_col:
             df_main[col] = scaler.fit_transform(df_main[col].values.reshape(-1,1))
             
@@ -209,7 +203,7 @@ class AlgoEvent:
         data_feat,data_target = [],[]
         for index in range(len(data_raw - 1) - seq):
             data_feat.append(data_raw[['open', 'high', 'low', 'close']][index: index + seq].values)
-            data_target.append(data_raw['target'][index + seq - 1])
+            data_target.append(data_raw['target'][index:index + seq])
         data_pred = data_raw[['open', 'high', 'low', 'close']][-seq:].values
         feat = np.array(data_feat)
         target = np.array(data_target)
@@ -217,7 +211,7 @@ class AlgoEvent:
         #trainX,trainY,testX,testY = train_test(feat,target,test_set_size,seq)
         train_size = feat.shape[0] - (test_set_size) 
         trainX = torch.from_numpy(feat[:train_size].reshape(-1,seq,4)).type(torch.Tensor)
-        trainY = torch.from_numpy(target[:train_size].reshape(-1,1,1)).type(torch.Tensor)
+        trainY = torch.from_numpy(target[:train_size].reshape(-1,seq,1)).type(torch.Tensor)
         
         self.evt.consoleLog('x_train.shape = '+str(trainX.shape))
         self.evt.consoleLog('y_train.shape = '+str(trainY.shape))
@@ -271,20 +265,17 @@ class AlgoEvent:
             optimiser.step()
         
         
-        p = y_train_pred.detach().numpy()[:,-1,0]
-        trainY_target = trainY.detach().numpy()[:,-1,0]
-        y_train_pred.detach().numpy()[:,-1,0]
-        y_train_pred = scaler.inverse_transform(y_train_pred.detach().numpy()[:,-1,0].reshape(-1,1))
-        y_train = scaler.inverse_transform(trainY.detach().numpy()[:,-1,0].reshape(-1,1))
         
         # predict tomorrow
         last_seq = data_pred
         last_seq = torch.from_numpy(last_seq.reshape(-1,seq,4)).type(torch.Tensor)
         last_seq_pred = self.model(last_seq)
-        # print all 10 losses
-        self.evt.consoleLog('pred: '+str(last_seq_pred.detach().numpy()))
+        # print last 9 true values
+        self.evt.consoleLog('true: '+str(data_all["target"][-9:]))
+        # print 9 predicted values
+        self.evt.consoleLog('pred: '+str(last_seq_pred.detach().numpy()[:,:-1,0]))
 
-        last_seq_pred = last_seq_pred.detach().numpy()[0][0]
+        last_seq_pred = last_seq_pred.detach().numpy()[:,-1,0]
 
         self.evt.consoleLog('last_seq_pred: '+str(last_seq_pred))
         self.LSTM_prediction = last_seq_pred
@@ -323,7 +314,7 @@ class AlgoEvent:
         }
         df_main = pd.DataFrame(data_all)
         scaler = MinMaxScaler(feature_range=(-1, 1))
-        sel_col = ['open', 'high', 'low', 'close', 'target']
+        sel_col = ['open', 'high', 'low', 'close']
         for col in sel_col:
             df_main[col] = scaler.fit_transform(df_main[col].values.reshape(-1,1))
 
@@ -336,7 +327,7 @@ class AlgoEvent:
         data_feat,data_target = [],[]
         for index in range(len(data_raw - 1) - seq):
             data_feat.append(data_raw[['open', 'high', 'low', 'close']][index: index + seq].values)
-            data_target.append(data_raw['target'][index + seq - 1])
+            data_target.append(data_raw['target'][index:index + seq])
         data_pred = data_raw[['open', 'high', 'low', 'close']][-seq:].values
         feat = np.array(data_feat)
         target = np.array(data_target)
@@ -380,7 +371,7 @@ class AlgoEvent:
         last_seq = data_pred
         last_seq = torch.from_numpy(last_seq.reshape(-1,seq,4)).type(torch.Tensor)
         last_seq_pred = self.model(last_seq)
-        last_seq_pred = last_seq_pred.detach().numpy()[0][0]
+        last_seq_pred = last_seq_pred.detach().numpy()[:,-1,0]
         self.LSTM_prediction = last_seq_pred
 
         self.evt.consoleLog('last_seq_pred: '+str(last_seq_pred))
