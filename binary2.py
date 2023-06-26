@@ -218,7 +218,7 @@ class AlgoEvent:
         
         n_steps = seq
         batch_size = 259
-        num_epochs = 30
+        num_epochs = 100
         
         train = torch.utils.data.TensorDataset(trainX,trainY)
         train_loader = torch.utils.data.DataLoader(dataset=train, 
@@ -271,7 +271,7 @@ class AlgoEvent:
         last_seq = torch.from_numpy(last_seq.reshape(-1,seq,4)).type(torch.Tensor)
         last_seq_pred = self.model(last_seq)
         # print last 9 true values
-        self.evt.consoleLog('true: '+str(data_all["target"][-9:]))
+        self.evt.consoleLog('true: '+str(data_all["target"][-10:-1]))
         # print 9 predicted values
         self.evt.consoleLog('pred: '+str(last_seq_pred.detach().numpy()[:,:-1,0]))
 
