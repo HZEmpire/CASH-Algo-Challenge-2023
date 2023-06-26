@@ -278,7 +278,7 @@ class AlgoEvent:
         last_seq = tommorow
         last_seq = torch.from_numpy(last_seq.reshape(-1,seq,4)).type(torch.Tensor)
         last_seq_pred = self.model(last_seq)
-        last_seq_pred = scaler.inverse_transform(last_seq_pred.detach().numpy()[:,-1,0].reshape(-1,1))
+        last_seq_pred = scaler.inverse_transform(last_seq_pred.detach().numpy()[:,-1,0].reshape(-1,1))[0][0]
 
         self.evt.consoleLog('last_seq_pred: ', last_seq_pred)
         self.LSTM_prediction = last_seq_pred
@@ -369,7 +369,7 @@ class AlgoEvent:
         last_seq = feat[-1]
         last_seq = torch.from_numpy(last_seq.reshape(-1,seq,4)).type(torch.Tensor)
         last_seq_pred = self.model(last_seq)
-        last_seq_pred = scaler.inverse_transform(last_seq_pred.detach().numpy()[:,-1,0].reshape(-1,1))
+        last_seq_pred = scaler.inverse_transform(last_seq_pred.detach().numpy()[:,-1,0].reshape(-1,1))[0][0]
         self.evt.consoleLog('last_seq_pred: ', last_seq_pred)
         self.LSTM_prediction = last_seq_pred
 
