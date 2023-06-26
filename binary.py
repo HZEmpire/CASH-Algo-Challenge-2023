@@ -146,12 +146,14 @@ class AlgoEvent:
 
     def start(self, mEvt):
         self.evt = AlgoAPI_Backtest.AlgoEvtHandler(self, mEvt)
+        self.myinstrument = mEvt['subscribeList'][0]
+        self.evt.consoleLog('myinstrument = ', self.myinstrument)
 
         # Get initial past 200 days close price data
-        #self.closeprices, timestamps = self.getClosePrice('00001HK', 200, None)
+        #self.closeprices, timestamps = self.getClosePrice(self.myinstrument, 200, None)
         
         # Initialize ARIMA model
-        #self.ARIMAparams = self.getARIMA('00001HK', self.closeprices)
+        #self.ARIMAparams = self.getARIMA(self.myinstrument, self.closeprices)
         #self.evt.consoleLog('ARIMA parameters: ' + str(self.ARIMAparams))
         
         # Initialize the first ARIMA prediction
@@ -160,16 +162,16 @@ class AlgoEvent:
         #self.ARIMA_prediction = model_fit.forecast(steps=1)[0]
 
         
-        open_1, t = self.getOpenPrice('00001HK', 300, None)
+        open_1, t = self.getOpenPrice(self.myinstrument, 300, None)
         #self.evt.consoleLog('open price: ')
         #self.evt.consoleLog(open_1, t)
-        high_1, t = self.getHighPrice('00001HK', 300, None)
+        high_1, t = self.getHighPrice(self.myinstrument, 300, None)
         #self.evt.consoleLog('high price: ')
         #self.evt.consoleLog(high_1, t)
-        low_1, t = self.getLowPrice('00001HK', 300, None)
+        low_1, t = self.getLowPrice(self.myinstrument, 300, None)
         #self.evt.consoleLog('low price: ')
         #self.evt.consoleLog(low_1, t)
-        close_1, t = self.getClosePrice('00001HK', 300, None)
+        close_1, t = self.getClosePrice(self.myinstrument, 300, None)
         #self.evt.consoleLog('close price: ')
         #self.evt.consoleLog(close_1, t)
         data_all = {'open' : open_1[0:299],
@@ -214,7 +216,7 @@ class AlgoEvent:
         
         n_steps = seq
         batch_size = 259
-        num_epochs = 200
+        num_epochs = 50
         
         train = torch.utils.data.TensorDataset(trainX,trainY)
         test = torch.utils.data.TensorDataset(testX,testY)
@@ -295,7 +297,7 @@ class AlgoEvent:
     def on_bulkdatafeed(self, isSync, bd, ab):
         # --------------------------------------------
         # LSTM
-        todayclose, today = self.getClosePrice('00001HK', 2, None)
+        todayclose, today = self.getClosePrice(self.myinstrument, 2, None)
         # Compare the prediction with the real close price
         self.evt.consoleLog('LSTM prediction: ' + str(self.LSTM_prediction))
         self.evt.consoleLog('Real close price: ' + str(todayclose))
@@ -310,10 +312,10 @@ class AlgoEvent:
             self.credit -= 0.01
         self.evt.consoleLog(' ')
         
-        open, t = self.getOpenPrice('00001HK', 30, None)
-        high, t = self.getHighPrice('00001HK', 30, None)
-        low, t = self.getLowPrice('00001HK', 30, None)
-        close, t = self.getClosePrice('00001HK', 30, None)
+        open, t = self.getOpenPrice(self.myinstrument, 30, None)
+        high, t = self.getHighPrice(self.myinstrument, 30, None)
+        low, t = self.getLowPrice(self.myinstrument, 30, None)
+        close, t = self.getClosePrice(self.myinstrument, 30, None)
         data_all = {'open' : open[0:29],
                     'high' : high[0:29],
                     'low'  : low[0:29],
@@ -344,7 +346,7 @@ class AlgoEvent:
 
         n_steps = seq
         batch_size = 259
-        num_epochs = 30 # avoid overfitting
+        num_epochs = 20 # avoid overfitting
 
         train = torch.utils.data.TensorDataset(trainX,trainY)
         train_loader = torch.utils.data.DataLoader(dataset=train,
@@ -379,6 +381,7 @@ class AlgoEvent:
         last_seq = torch.from_numpy(last_seq.reshape(-1,seq,4)).type(torch.Tensor)
         last_seq_pred = self.model(last_seq)
         last_seq_pred = last_seq_pred.detach().numpy()[:,-1,0]
+        self.LSTM_prediction = last_seq_pred
 
         self.evt.consoleLog('last_seq_pred: ', last_seq_pred)
 
@@ -387,43 +390,39 @@ class AlgoEvent:
 
 
         pos, osOrder, pendOrder = self.evt.getSystemOrders()
-        position = pos[self.instrument]["netVolume"]
+        position = pos[self.myinstrument]["netVolume"]
+        self.evt.consoleLog('Position: ', position)
 
         
 
     # 若预测值为上涨则开仓
-        yesclose = self.getClosePrice('00001HK', 1, None)
+        yesclose = self.getClosePrice(self.myinstrument, 1, None)
         if position == 0:
-            if self.prediction >= 0.7:
+            if self.LSTM_prediction >= 0.7:
                 self.doit(self.instrument, 1, self.ref, 10000)
-                self.ref++
         if position > 0:
             # 加仓 5%
-            if self.prediction >= 0.7:
+            if self.LSTM_prediction >= 0.7:
                 self.doit(self.instrument, 1, self.ref, position * 0.05)
-                self.ref++
             # 减仓 30%
-            elif self.prediction <= 0.3:
+            elif self.LSTM_prediction <= 0.3:
                 self.doit(self.instrument, -1, self.ref, position * 0.3)
-                self.ref++
         if position < 0:
             # 减仓 5%
-            if self.prediction <= 0.3:
+            if self.LSTM_prediction <= 0.3:
                 self.doit(self.instrument, -1, self.ref, position * 0.05)
-                self.ref++
             # 加仓 30%
-            elif self.prediction >= 0.7:
+            elif self.LSTM_prediction >= 0.7:
                 self.doit(self.instrument, 1, self.ref, position * 0.3)
-                self.ref++
             
             
     # 当过去两天涨幅大于10%,平掉所有仓位止盈
         if position and todayclose[-1]/ todayclose[-2] >= 1.10:
-            self.doit(self.instrument, -1, self.ref, position)
+            self.doit(self.instrument, 0, self.ref, position)
            
     # 当时间为周五并且跌幅大于5%时,平掉所有仓位止损
         elif position and todayclose[-1] / todayclose[-2] < 0.95 :
-            self.doit(self.instrument, -1, self.ref, position)
+            self.doit(self.instrument, 0, self.ref, position)
             
 
         # --------------------------------------------
