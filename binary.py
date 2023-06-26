@@ -414,11 +414,11 @@ class AlgoEvent:
             
     # 当过去两天涨幅大于10%,平掉所有仓位止盈
         if position and todayclose[-1]/ todayclose[-2] >= 1.10:
-            self.doit(self.instrument, 0, self.ref, position)
+            self.doit(self.instrument, -1, self.ref, position)
            
     # 当时间为周五并且跌幅大于5%时,平掉所有仓位止损
         elif position and todayclose[-1] / todayclose[-2] < 0.95 :
-            self.doit(self.instrument, 0, self.ref, position)
+            self.doit(self.instrument, -1, self.ref, position)
             
 
         # --------------------------------------------
