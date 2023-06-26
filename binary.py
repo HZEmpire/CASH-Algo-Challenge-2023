@@ -183,7 +183,7 @@ class AlgoEvent:
                     'low'  : low_1[0:data_len],
                     'close': close_1[0:data_len],
                     # target: from 1 to 300 if close price is higher than previous day, 0 otherwise
-                    'target': np.where(close_1[1:300] > close_1[0:299],1,0).tolist() + [0]
+                    'target': np.where(close_1[1:data_len] > close_1[0:(data_len-1)],1,0).tolist() + [0]
         }
         df_main = pd.DataFrame(data_all)
         scaler = MinMaxScaler(feature_range=(-1, 1))
@@ -312,7 +312,7 @@ class AlgoEvent:
                     'high' : high[0:data_len],
                     'low'  : low[0:data_len],
                     'close': close[0:data_len],
-                    'target': np.where(close[1:30] > close[0:29],1,0).tolist() + [0]
+                    'target': np.where(close[1:data_len] > close[0:(data_len-1)],1,0).tolist() + [0]
         }
         df_main = pd.DataFrame(data_all)
         scaler = MinMaxScaler(feature_range=(-1, 1))
