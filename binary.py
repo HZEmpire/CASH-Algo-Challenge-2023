@@ -347,7 +347,7 @@ class AlgoEvent:
                                              batch_size=batch_size,
                                                 shuffle=False)
         
-        loss_fn = loss_fn = nn.CrossEntropyLoss()
+        loss_fn = nn.CrossEntropyLoss()
         optimiser = torch.optim.Adam(self.model.parameters(), lr=0.01)
         input_dim = 4
         hidden_dim = 20
