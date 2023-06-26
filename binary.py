@@ -194,7 +194,7 @@ class AlgoEvent:
         df_main = df_main.astype(np.float32)
         data_raw = df_main
         seq = 10
-        test_set_size = int(np.round(0.1*data_raw.shape[0]))
+        test_set_size = int(np.round(0.01*data_raw.shape[0]))
         # generate train & test dataset
         #feat,target = create_seq_data(data_raw,seq)
         
@@ -219,7 +219,7 @@ class AlgoEvent:
         
         n_steps = seq
         batch_size = 259
-        num_epochs = 50
+        num_epochs = 30
         
         train = torch.utils.data.TensorDataset(trainX,trainY)
         test = torch.utils.data.TensorDataset(testX,testY)
@@ -402,7 +402,7 @@ class AlgoEvent:
         yesclose = self.getClosePrice(self.myinstrument, 1, None)
         if position == 0:
             if self.LSTM_prediction >= 0.7:
-                self.doit(self.instrument, 1, self.ref, 10000)
+                self.doit(self.instrument, 1, self.ref, 100)
         if position > 0:
             # 加仓 5%
             if self.LSTM_prediction >= 0.7:
