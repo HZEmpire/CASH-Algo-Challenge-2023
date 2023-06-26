@@ -396,20 +396,25 @@ class AlgoEvent:
         if position == 0:
             if self.prediction >= 0.7:
                 self.doit(self.instrument, 1, self.ref, 10000)
+                self.ref++
         if position > 0:
             # 加仓 5%
             if self.prediction >= 0.7:
                 self.doit(self.instrument, 1, self.ref, position * 0.05)
+                self.ref++
             # 减仓 30%
             elif self.prediction <= 0.3:
                 self.doit(self.instrument, -1, self.ref, position * 0.3)
+                self.ref++
         if position < 0:
             # 减仓 5%
             if self.prediction <= 0.3:
                 self.doit(self.instrument, -1, self.ref, position * 0.05)
+                self.ref++
             # 加仓 30%
             elif self.prediction >= 0.7:
                 self.doit(self.instrument, 1, self.ref, position * 0.3)
+                self.ref++
             
             
     # 当过去两天涨幅大于10%,平掉所有仓位止盈
