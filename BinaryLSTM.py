@@ -27,8 +27,6 @@ class LSTM(nn.Module):
         # Readout layer
         self.fc = nn.Linear(hidden_dim, output_dim)
         
-        # Initialize reference number
-        self.ref = 0
 
     def forward(self, x):
         # Initialize hidden state with zeros
@@ -146,6 +144,9 @@ class AlgoEvent:
         
         # the credit rating for the AI model
         self.credit = 1
+        
+        # Initialize reference number
+        self.ref = 0
 
     def start(self, mEvt):
         self.evt = AlgoAPI_Backtest.AlgoEvtHandler(self, mEvt)
@@ -303,15 +304,15 @@ class AlgoEvent:
             self.evt.consoleLog('False prediction')
             self.credit -= 0.01
         
-        open, t = self.getOpenPrice(self.myinstrument, 30, None)
-        high, t = self.getHighPrice(self.myinstrument, 30, None)
-        low, t = self.getLowPrice(self.myinstrument, 30, None)
-        close, t = self.getClosePrice(self.myinstrument, 30, None)
-        data_all = {'open' : open[0:29],
-                    'high' : high[0:29],
-                    'low'  : low[0:29],
-                    'close': close[0:29],
-                    'target': np.where(close[1:30] > close[0:29],1,0)
+        open, t = self.getOpenPrice(self.myinstrument, 10, None)
+        high, t = self.getHighPrice(self.myinstrument, 10, None)
+        low, t = self.getLowPrice(self.myinstrument, 10, None)
+        close, t = self.getClosePrice(self.myinstrument, 10, None)
+        data_all = {'open' : open[0:9],
+                    'high' : high[0:9],
+                    'low'  : low[0:9],
+                    'close': close[0:9],
+                    'target': np.where(close[1:10] > close[0:9],1,0)
         }
         df_main = pd.DataFrame(data_all)
         scaler = MinMaxScaler(feature_range=(-1, 1))
