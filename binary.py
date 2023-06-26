@@ -26,6 +26,9 @@ class LSTM(nn.Module):
 
         # Readout layer
         self.fc = nn.Linear(hidden_dim, output_dim)
+        
+        # Initialize reference number
+        self.ref = 0
 
     def forward(self, x):
         # Initialize hidden state with zeros
@@ -458,6 +461,7 @@ class AlgoEvent:
             volume = vol
         )
         self.evt.sendOrder(order)
+        self.ref += 1
 
 
     def on_marketdatafeed(self, md, ab):
