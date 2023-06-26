@@ -165,11 +165,12 @@ class AlgoEvent:
         close_1, t = self.getClosePrice('00001HK', 300, None)
         #self.evt.consoleLog('close price: ')
         #self.evt.consoleLog(close_1, t)
-        data_all = {'open' : open_1[0:299],
-                    'high' : high_1[0:299],
-                    'low'  : low_1[0:299],
-                    'close': close_1[0:299],
-                    'target': close_1[1:300]
+        data_len = len(close_1)
+        data_all = {'open' : open_1[0:data_len],
+                    'high' : high_1[0:data_len],
+                    'low'  : low_1[0:data_len],
+                    'close': close_1[0:data_len],
+                    'target': close_1[1:300] + [None]
         }
         df_main = pd.DataFrame(data_all)
         scaler = MinMaxScaler(feature_range=(-1, 1))
@@ -186,9 +187,10 @@ class AlgoEvent:
         #feat,target = create_seq_data(data_raw,seq)
         
         data_feat,data_target = [],[]
-        for index in range(len(data_raw) - seq):
+        for index in range(len(data_raw-1) - seq):
             data_feat.append(data_raw[['open', 'high', 'low', 'close']][index: index + seq].values)
             data_target.append(data_raw['target'][index:index + seq])
+        tommorow = data_raw[['open', 'high', 'low', 'close']][(len(data_raw-1) - seq): len(data_raw-1)].values
         feat = np.array(data_feat)
         target = np.array(data_target)
         
@@ -273,7 +275,7 @@ class AlgoEvent:
         self.evt.consoleLog('Test Score: %.2f RMSE' % (testScore))
 
         # predict tomorrow
-        last_seq = feat[-1]
+        last_seq = tommorow
         last_seq = torch.from_numpy(last_seq.reshape(-1,seq,4)).type(torch.Tensor)
         last_seq_pred = self.model(last_seq)
         last_seq_pred = scaler.inverse_transform(last_seq_pred.detach().numpy()[:,-1,0].reshape(-1,1))
@@ -301,11 +303,12 @@ class AlgoEvent:
         high, t = self.getHighPrice('00001HK', 30, None)
         low, t = self.getLowPrice('00001HK', 30, None)
         close, t = self.getClosePrice('00001HK', 30, None)
-        data_all = {'open' : open[0:29],
-                    'high' : high[0:29],
-                    'low'  : low[0:29],
-                    'close': close[0:29],
-                    'target': close[1:30]
+        data_len = len(close)
+        data_all = {'open' : open[0:data_len],
+                    'high' : high[0:data_len],
+                    'low'  : low[0:data_len],
+                    'close': close[0:data_len],
+                    'target': close[1:data_len] + [None]
         }
         df_main = pd.DataFrame(data_all)
         scaler = MinMaxScaler(feature_range=(-1, 1))
@@ -320,9 +323,10 @@ class AlgoEvent:
         test_set_size = 0
 
         data_feat,data_target = [],[]
-        for index in range(len(data_raw) - seq):
+        for index in range(len(data_raw-1) - seq):
             data_feat.append(data_raw[['open', 'high', 'low', 'close']][index: index + seq].values)
             data_target.append(data_raw['target'][index:index + seq])
+        tommorow = data_raw[['open', 'high', 'low', 'close']][(len(data_raw-1) - seq): len(data_raw-1)].values
         feat = np.array(data_feat)
         target = np.array(data_target)
 
@@ -366,6 +370,8 @@ class AlgoEvent:
         last_seq = torch.from_numpy(last_seq.reshape(-1,seq,4)).type(torch.Tensor)
         last_seq_pred = self.model(last_seq)
         last_seq_pred = scaler.inverse_transform(last_seq_pred.detach().numpy()[:,-1,0].reshape(-1,1))
+        self.evt.consoleLog('last_seq_pred: ', last_seq_pred)
+        self.LSTM_prediction = last_seq_pred
 
         # --------------------------------------------
         # end of LSTM
