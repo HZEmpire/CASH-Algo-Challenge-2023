@@ -386,15 +386,6 @@ class AlgoEvent:
         # end of LSTM
 
 
-        
-
-        # Add new close price data
-        todayclose, today = self.getClosePrice('00001HK', 1, None)
-        self.closeprices = self.closeprices + todayclose
-        self.evt.consoleLog(todayclose, today)
-
-
-
         pos, osOrder, pendOrder = self.evt.getSystemOrders()
         position = pos[self.instrument]["netVolume"]
 
@@ -402,19 +393,31 @@ class AlgoEvent:
 
     # 若预测值为上涨则开仓
         yesclose = self.getClosePrice('00001HK', 1, None)
-        if last_seq_pred == 1:
-            # 获取昨收盘价
-            volume = position * 0.05
-            # 把仓位上调5%
-            self.doit(self.instrument, 1, self.ref, volume)
-            self.ref += 1
+        if position == 0:
+            if self.prediction >= 0.7:
+                self.doit(self.instrument, 1, self.ref, 10000)
+        if position > 0:
+            # 加仓 5%
+            if self.prediction >= 0.7:
+                self.doit(self.instrument, 1, self.ref, position * 0.05)
+            # 减仓 30%
+            elif self.prediction <= 0.3:
+                self.doit(self.instrument, -1, self.ref, position * 0.3)
+        if position < 0:
+            # 减仓 5%
+            if self.prediction <= 0.3:
+                self.doit(self.instrument, -1, self.ref, position * 0.05)
+            # 加仓 30%
+            elif self.prediction >= 0.7:
+                self.doit(self.instrument, 1, self.ref, position * 0.3)
             
-    # 当涨幅大于10%,平掉所有仓位止盈
-        elif position and todayclose[0]/ todayclose[-1] >= self.credit * 1.10:
+            
+    # 当过去两天涨幅大于10%,平掉所有仓位止盈
+        if position and todayclose[-1]/ todayclose[-2] >= 1.10:
             self.doit(self.instrument, 0, self.ref, position)
            
-    # 当时间为周五并且跌幅大于2%时,平掉所有仓位止损
-        elif position and todayclose[0] / todayclose[-1] < self.credit* 0.98 :
+    # 当时间为周五并且跌幅大于5%时,平掉所有仓位止损
+        elif position and todayclose[-1] / todayclose[-2] < 0.95 :
             self.doit(self.instrument, 0, self.ref, position)
             
 
@@ -476,4 +479,3 @@ class AlgoEvent:
 
     def on_openPositionfeed(self, op, oo, uo):
         pass
-
