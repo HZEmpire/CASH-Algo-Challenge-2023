@@ -218,7 +218,7 @@ class AlgoEvent:
         
         n_steps = seq
         batch_size = 259
-        num_epochs = 100
+        num_epochs = 30
         
         train = torch.utils.data.TensorDataset(trainX,trainY)
         train_loader = torch.utils.data.DataLoader(dataset=train, 
