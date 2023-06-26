@@ -394,34 +394,34 @@ class AlgoEvent:
         if position == 0:
             if self.LSTM_prediction >= 0.7:
                 self.evt.consoleLog('Buy')
-                self.doit(self.instrument, 1, self.ref, 100)
+                self.doit(self.myinstrument, 1, self.ref, 100)
         if position > 0:
             # 加仓 5%
             if self.LSTM_prediction >= 0.7:
                 self.evt.consoleLog('Buy')
-                self.doit(self.instrument, 1, self.ref, position * 0.05)
+                self.doit(self.myinstrument, 1, self.ref, position * 0.05)
             # 减仓 30%
             elif self.LSTM_prediction <= 0.3:
                 self.evt.consoleLog('Sell')
-                self.doit(self.instrument, -1, self.ref, position * 0.3)
+                self.doit(self.myinstrument, -1, self.ref, position * 0.3)
         if position < 0:
             # 减仓 5%
             if self.LSTM_prediction <= 0.3:
                 self.evt.consoleLog('Sell')
-                self.doit(self.instrument, -1, self.ref, position * 0.05)
+                self.doit(self.myinstrument, -1, self.ref, position * 0.05)
             # 加仓 30%
             elif self.LSTM_prediction >= 0.7:
                 self.evt.consoleLog('Buy')
-                self.doit(self.instrument, 1, self.ref, position * 0.3)
+                self.doit(self.myinstrument, 1, self.ref, position * 0.3)
             
             
     # 当过去两天涨幅大于10%,平掉所有仓位止盈
         if position and todayclose[-1]/ todayclose[-2] >= 1.10:
-            self.doit(self.instrument, 0, self.ref, position)
+            self.doit(self.myinstrument, 0, self.ref, position)
            
     # 当时间为周五并且跌幅大于5%时,平掉所有仓位止损
         elif position and todayclose[-1] / todayclose[-2] < 0.95 :
-            self.doit(self.instrument, 0, self.ref, position)
+            self.doit(self.myinstrument, 0, self.ref, position)
             
 
         # --------------------------------------------
