@@ -221,7 +221,7 @@ class AlgoEvent:
         
         n_steps = seq
         batch_size = 259
-        num_epochs = 150
+        num_epochs = 100
         
         train = torch.utils.data.TensorDataset(trainX,trainY)
         train_loader = torch.utils.data.DataLoader(dataset=train, 
@@ -352,7 +352,7 @@ class AlgoEvent:
                                                 shuffle=False)
         
         loss_fn = nn.MSELoss()
-        optimiser = torch.optim.Adam(self.model.parameters(), lr=0.01)
+        optimiser = torch.optim.Adam(self.model.parameters(), lr=0.1)
         input_dim = 4
         hidden_dim = 20
         num_layers = 2
@@ -401,7 +401,7 @@ class AlgoEvent:
                 self.doit(self.myinstrument, 1, self.ref, 100)
         if position > 0:
             # 加仓 5%
-            if self.LSTM_prediction >= 0.6 and self.yesterday == 0:
+            if self.LSTM_prediction <0.9 and self.LSTM_prediction >= 0.6 and self.yesterday == 0:
                 self.evt.consoleLog('Buy')
                 self.doit(self.myinstrument, 1, self.ref, position * 0.05)
             if self.LSTM_prediction >= 0.9:
@@ -426,11 +426,11 @@ class AlgoEvent:
             
             
     # 当过去两天涨幅大于10%,平掉所有仓位止盈
-        if position and todayclose[-1]/ todayclose[-2] >= 1.10:
-            self.doit(self.myinstrument, -1, self.ref, position)
+    #    if position and todayclose[-1]/ todayclose[-2] >= 1.10:
+    #        self.doit(self.myinstrument, -1, self.ref, position)
            
     # 当时间为周五并且跌幅大于5%时,平掉所有仓位止损
-        elif position and todayclose[-1] / todayclose[-2] < 0.95 :
+        elif position and todayclose[-1] / todayclose[-2] < 0.9 :
             self.doit(self.myinstrument, -1, self.ref, position)
             
 
