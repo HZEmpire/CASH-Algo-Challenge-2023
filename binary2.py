@@ -148,6 +148,9 @@ class AlgoEvent:
         # Initialize reference number
         self.ref = 0
 
+        # Use to store yesturday's status
+        self.yesterday = None
+
     def start(self, mEvt):
         self.evt = AlgoAPI_Backtest.AlgoEvtHandler(self, mEvt)
         self.myinstrument = mEvt['subscribeList'][0]
@@ -218,7 +221,7 @@ class AlgoEvent:
         
         n_steps = seq
         batch_size = 259
-        num_epochs = 100
+        num_epochs = 150
         
         train = torch.utils.data.TensorDataset(trainX,trainY)
         train_loader = torch.utils.data.DataLoader(dataset=train, 
@@ -232,9 +235,9 @@ class AlgoEvent:
         self.model = LSTM(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, num_layers=num_layers)
 
         # Binary cross entropy loss
-        loss_fn = nn.BCELoss()
+        loss_fn = nn.MSELoss()
 
-        optimiser = torch.optim.Adam(self.model.parameters(), lr=0.01)
+        optimiser = torch.optim.Adam(self.model.parameters(), lr=0.1)
         self.evt.consoleLog(self.model)
         self.evt.consoleLog(len(list(self.model.parameters())))
         for i in range(len(list(self.model.parameters()))):
@@ -300,6 +303,10 @@ class AlgoEvent:
             self.evt.consoleLog('False prediction')
             self.credit -= 0.01
         self.evt.consoleLog(' ')
+        if todayclose[-1] > todayclose[-2]:
+            self.yesterday = 1
+        else:
+            self.yesterday = 0
         
         open, t = self.getOpenPrice(self.myinstrument, 30, None)
         high, t = self.getHighPrice(self.myinstrument, 30, None)
@@ -344,7 +351,7 @@ class AlgoEvent:
                                              batch_size=batch_size,
                                                 shuffle=False)
         
-        loss_fn = nn.BCELoss()
+        loss_fn = nn.MSELoss()
         optimiser = torch.optim.Adam(self.model.parameters(), lr=0.01)
         input_dim = 4
         hidden_dim = 20
@@ -388,19 +395,25 @@ class AlgoEvent:
 
     # 若预测值为上涨则开仓
         yesclose = self.getClosePrice(self.myinstrument, 1, None)
-        if position == 0:
+        if position == 0 and self.yesterday == 0:
             if self.LSTM_prediction >= 0.7:
                 self.evt.consoleLog('Buy')
                 self.doit(self.myinstrument, 1, self.ref, 100)
         if position > 0:
             # 加仓 5%
-            if self.LSTM_prediction >= 0.7:
+            if self.LSTM_prediction >= 0.6 and self.yesterday == 0:
                 self.evt.consoleLog('Buy')
                 self.doit(self.myinstrument, 1, self.ref, position * 0.05)
+            if self.LSTM_prediction >= 0.9:
+                self.evt.consoleLog('Buy')
+                self.doit(self.myinstrument, 1, self.ref, position * 0.3)
             # 减仓 30%
-            elif self.LSTM_prediction <= 0.3:
+            elif self.LSTM_prediction <= 0.45 and self.yesterday == 1:
                 self.evt.consoleLog('Sell')
                 self.doit(self.myinstrument, -1, self.ref, position * 0.3)
+            elif self.LSTM_prediction <= 0.2:
+                self.evt.consoleLog('Sell')
+                self.doit(self.myinstrument, -1, self.ref, position * 0.5)
         if position < 0:
             # 减仓 5%
             if self.LSTM_prediction <= 0.3:
@@ -414,11 +427,11 @@ class AlgoEvent:
             
     # 当过去两天涨幅大于10%,平掉所有仓位止盈
         if position and todayclose[-1]/ todayclose[-2] >= 1.10:
-            self.doit(self.myinstrument, 0, self.ref, position)
+            self.doit(self.myinstrument, -1, self.ref, position)
            
     # 当时间为周五并且跌幅大于5%时,平掉所有仓位止损
         elif position and todayclose[-1] / todayclose[-2] < 0.95 :
-            self.doit(self.myinstrument, 0, self.ref, position)
+            self.doit(self.myinstrument, -1, self.ref, position)
             
 
         # --------------------------------------------
