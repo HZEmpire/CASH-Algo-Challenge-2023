@@ -235,7 +235,7 @@ class AlgoEvent:
         self.model = LSTM(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, num_layers=num_layers)
 
         # Binary cross entropy loss
-        loss_fn = nn.MSELoss()
+        loss_fn = nn.BCELoss()
 
         optimiser1 = torch.optim.Adam(self.model.parameters(), lr=0.1)
         optimiser2 = torch.optim.Adam(self.model.parameters(), lr=0.01)
@@ -356,7 +356,7 @@ class AlgoEvent:
                                              batch_size=batch_size,
                                                 shuffle=False)
         
-        loss_fn = nn.MSELoss()
+        loss_fn = nn.BCELoss()
         optimiser = torch.optim.Adam(self.model.parameters(), lr=0.01)
         input_dim = 4
         hidden_dim = 20
