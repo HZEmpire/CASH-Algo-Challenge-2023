@@ -221,7 +221,7 @@ class AlgoEvent:
         
         n_steps = seq
         batch_size = 259
-        num_epochs = 100
+        num_epochs = 150
         
         train = torch.utils.data.TensorDataset(trainX,trainY)
         train_loader = torch.utils.data.DataLoader(dataset=train, 
@@ -235,9 +235,10 @@ class AlgoEvent:
         self.model = LSTM(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, num_layers=num_layers)
 
         # Binary cross entropy loss
-        loss_fn = nn.MSELoss()
+        loss_fn = nn.BCELoss()
 
-        optimiser = torch.optim.Adam(self.model.parameters(), lr=0.1)
+        optimiser1 = torch.optim.Adam(self.model.parameters(), lr=0.1)
+        optimiser2 = torch.optim.Adam(self.model.parameters(), lr=0.01)
         self.evt.consoleLog(self.model)
         self.evt.consoleLog(len(list(self.model.parameters())))
         for i in range(len(list(self.model.parameters()))):
@@ -259,6 +260,10 @@ class AlgoEvent:
             hist[t] = loss.item()
 
             # Zero out gradient, else they will accumulate between epochs
+            if t < 70:
+                optimiser = optimiser1
+            else:
+                optimiser = optimiser2
             optimiser.zero_grad()
 
             # Backward pass
@@ -351,8 +356,8 @@ class AlgoEvent:
                                              batch_size=batch_size,
                                                 shuffle=False)
         
-        loss_fn = nn.MSELoss()
-        optimiser = torch.optim.Adam(self.model.parameters(), lr=0.1)
+        loss_fn = nn.BCELoss()
+        optimiser = torch.optim.Adam(self.model.parameters(), lr=0.01)
         input_dim = 4
         hidden_dim = 20
         num_layers = 2
@@ -365,7 +370,7 @@ class AlgoEvent:
             
             loss = loss_fn(y_train_pred, trainY)
             if t % 10 == 0 and t !=0:
-                self.evt.consoleLog("Epoch ", t, "MSE: ", loss.item())
+                self.evt.consoleLog("Epoch ", t, "Cross Entropy: ", loss.item())
             hist[t] = loss.item()
 
             optimiser.zero_grad()
@@ -394,35 +399,33 @@ class AlgoEvent:
         
 
     # 若预测值为上涨则开仓
-        yesclose = self.getClosePrice(self.myinstrument, 1, None)
-        if position == 0 and self.yesterday == 0:
-            if self.LSTM_prediction >= 0.7:
+        if position <= 30 and self.yesterday == 0:
+            if self.LSTM_prediction >= 0.75:
                 self.evt.consoleLog('Buy')
                 self.doit(self.myinstrument, 1, self.ref, 100)
-        if position > 0:
+        if position > 30:
             # 加仓 5%
-            if self.LSTM_prediction <0.9 and self.LSTM_prediction >= 0.6 and self.yesterday == 0:
-                self.evt.consoleLog('Buy')
-                self.doit(self.myinstrument, 1, self.ref, position * 0.05)
-            if self.LSTM_prediction >= 0.9:
-                self.evt.consoleLog('Buy')
-                self.doit(self.myinstrument, 1, self.ref, position * 0.3)
+            if self.yesterday == 0:
+                if self.LSTM_prediction >= 0.75:
+                    self.evt.consoleLog('Buy')
+                    self.doit(self.myinstrument, 1, self.ref, position * 0.15)
+                elif self.LSTM_prediction <= 0.25:
+                    self.evt.consoleLog('Sell')
+                    self.doit(self.myinstrument, -1, self.ref, position * 0.6)
+                else:
+                    self.evt.consoleLog('Sell')
+                    self.doit(self.myinstrument, -1, self.ref, position * 0.25)
             # 减仓 30%
-            elif self.LSTM_prediction <= 0.45 and self.yesterday == 1:
-                self.evt.consoleLog('Sell')
-                self.doit(self.myinstrument, -1, self.ref, position * 0.3)
-            elif self.LSTM_prediction <= 0.2:
-                self.evt.consoleLog('Sell')
-                self.doit(self.myinstrument, -1, self.ref, position * 0.5)
-        if position < 0:
-            # 减仓 5%
-            if self.LSTM_prediction <= 0.3:
-                self.evt.consoleLog('Sell')
-                self.doit(self.myinstrument, -1, self.ref, position * 0.05)
-            # 加仓 30%
-            elif self.LSTM_prediction >= 0.7:
-                self.evt.consoleLog('Buy')
-                self.doit(self.myinstrument, 1, self.ref, position * 0.3)
+            else:
+                if self.LSTM_prediction >= 0.75:
+                    self.evt.consoleLog('Buy')
+                    self.doit(self.myinstrument, 1, self.ref, position * 0.3)
+                elif self.LSTM_prediction <= 0.25:
+                    self.evt.consoleLog('Sell')
+                    self.doit(self.myinstrument, -1, self.ref, position * 0.3)
+                else:
+                    self.evt.consoleLog('Sell')
+                    self.doit(self.myinstrument, -1, self.ref, position * 0.1)
             
             
     # 当过去两天涨幅大于10%,平掉所有仓位止盈
@@ -464,7 +467,7 @@ class AlgoEvent:
             openclose = 'open', 
             buysell = buysell,    #1=buy, -1=sell
             ordertype = 0,  #0=market, 1=limit
-            volume = vol
+            volume = vol,
         )
         self.evt.sendOrder(order)
         self.ref += 1
