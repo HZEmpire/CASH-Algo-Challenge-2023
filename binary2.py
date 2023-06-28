@@ -235,7 +235,7 @@ class AlgoEvent:
         self.model = LSTM(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, num_layers=num_layers)
 
         # Binary cross entropy loss
-        loss_fn = nn.BCELoss()
+        loss_fn = nn.MSELoss()
 
         optimiser1 = torch.optim.Adam(self.model.parameters(), lr=0.1)
         optimiser2 = torch.optim.Adam(self.model.parameters(), lr=0.01)
@@ -256,7 +256,7 @@ class AlgoEvent:
 
             loss = loss_fn(y_train_pred, trainY)
             if t % 10 == 0 and t !=0:
-                self.evt.consoleLog("Epoch ", t, "Cross Entropy: ", loss.item())
+                self.evt.consoleLog("Epoch ", t, "MSE: ", loss.item())
             hist[t] = loss.item()
 
             # Zero out gradient, else they will accumulate between epochs
