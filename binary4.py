@@ -392,7 +392,7 @@ class AlgoEvent:
         position = pos[self.myinstrument]["netVolume"]
         self.evt.consoleLog('Position: '+str(position))
         ran = random.random()
-        if ran > 0.3:
+        if ran > 0.7:
             if position > 0:
                 self.doit(self.myinstrument, -1, self.ref, position )
             if position < 0:
@@ -512,4 +512,3 @@ class AlgoEvent:
 
     def on_openPositionfeed(self, op, oo, uo):
         pass
-
