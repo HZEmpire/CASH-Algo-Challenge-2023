@@ -10,10 +10,13 @@ class AlgoEvent:
         self.ref = 0
         self.R_prediction = 0
         self.credit = 1
+        self.count = 0
 
         # Use to store yesturday's status
         self.yesterday = None
-        pass
+
+        # Initialize reference number
+        self.ref = 0
 
     def getClosePrice(self, instrument, days, endtime):
         contract = {"instrument": instrument}    
@@ -47,6 +50,7 @@ class AlgoEvent:
        pass
 
     def on_marketdatafeed(self, md, ab):
+        self.R_prediction = 0
         todayclose, today = self.getClosePrice(self.myinstrument, 2, None)
         # Compare the prediction with the real close price
         self.evt.consoleLog('Rbreaker prediction: ' + str(self.R_prediction))
@@ -59,7 +63,7 @@ class AlgoEvent:
             self.credit += 0.01
         elif self.R_prediction == 0:
             # No prediction
-            self.evt.consoleLog('No prediction till now')
+            self.evt.consoleLog('No prediction')
         else:
             self.evt.consoleLog('False prediction')
             self.credit -= 0.01
@@ -78,19 +82,19 @@ class AlgoEvent:
             self.evt.consoleLog(str(each))  
         today = days[-1]
         yesterday = days[-2]
-        C = res[today]['c']
-        #last_C = res[yesterday - timedelta(hours=24)]['c']
+        C = res[yesterday]['c']
         H = res[yesterday]['h']
         L = res[yesterday]['l']
         HT = res[today]['h']
         LT = res[today]['l']
+        TC = res[today]['c']
         P = (H + C + L) / 3
-        TLP = H + 2 * P - 2 * L
-        OSP = P + H - L
-        RSP = 2 * P - L
-        RLP = 2 * P - H
-        OLP = P - (H - L)
-        TSP = L - 2 * (H - P)
+        TLP = H + 2 * P - 2 * L # 突破买入价
+        OSP = P + H - L # 观察卖出价
+        RSP = 2 * P - L # 反转卖出价
+        RLP = 2 * P - H # 反转买入价
+        OLP = P - (H - L) # 观察买入价
+        TSP = L - 2 * (H - P) # 突破卖出价
 
         # Print corresponding data
         self.evt.consoleLog('TLP: ' + str(TLP))
@@ -106,26 +110,33 @@ class AlgoEvent:
         self.evt.consoleLog('Position: ' + str(position))
 
         if position == 0:
-            if C > TLP:
+            if TC > TLP:
                 #long signal
                 Rsignal = 1
+                self.count += 1
+                self.doit(self.myinstrument, 1, self.ref, 100)
+                self.ref += 1
             
-            elif C < TSP:
+            elif TC < TSP:
                 #short signal
                 Rsignal = -1
+                self.count += 1
 
         
         else:
             if position > 0:
-                if HT > OSP and C < RSP:
+                if HT > OSP and TC < RSP:
                     #short signal
                     Rsignal = -1
+                    self.doit(self.myinstrument, -1, self.ref, position * 0.8)
             else:
-                if LT < OLP and C > RLP:
+                if LT < OLP and TC > RLP:
                     # long signal
                     Rsignal = 1
+                    self.doit(self.myinstrument, 1, self.ref, position * 0.8)
         self.R_prediction = Rsignal
         self.evt.consoleLog('Rbreaker signal: ' + str(Rsignal))
+        self.evt.consoleLog('Count: ' + str(self.count))
 
         return
     def on_newsdatafeed(self, nd):
