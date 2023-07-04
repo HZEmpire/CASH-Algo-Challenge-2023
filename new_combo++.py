@@ -481,12 +481,13 @@ class AlgoEvent:
         LSTM_score = (self.LSTM_prediction - 0.5) * 2
         R_score = self.R_prediction
         Predict_score = (LSTM_score * self.LSTM_credit + R_score * self.R_credit) / (self.LSTM_credit + self.R_credit)
+        self.evt.consoleLog('Predict score: ' + str(Predict_score))
 
         if position == 0:
-            if Predict_score > 0.5:
+            if LSTM_score > 0.7:
                 self.evt.consoleLog('Initial Buy')
                 self.doit(self.myinstrument, 1, self.ref, 50)
-            elif Predict_score < -0.5:
+            elif LSTM_score < -0.7:
                 self.evt.consoleLog('Initial Sell')
                 self.doit(self.myinstrument, -1, self.ref, 50)
 
@@ -505,13 +506,13 @@ class AlgoEvent:
                     self.doit(self.myinstrument, 1, self.ref, 50)
             
             # Case R-breaker is not accurate as LSTM
-            if Predict_score > 0.8:
+            if Predict_score > 0.7:
                 self.evt.consoleLog('Buy')
                 if position > 30:
                     self.doit(self.myinstrument, 1, self.ref, abs(position) * 0.5)
                 else:
                     self.doit(self.myinstrument, 1, self.ref, 50)
-            elif Predict_score < -0.8:
+            elif Predict_score < -0.7:
                 self.evt.consoleLog('Sell')
                 if position < -30:
                     self.doit(self.myinstrument, -1, self.ref, abs(position) * 0.5)
