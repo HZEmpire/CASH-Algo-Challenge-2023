@@ -482,14 +482,21 @@ class AlgoEvent:
         R_score = self.R_prediction
         Predict_score = (LSTM_score * self.LSTM_credit + R_score * self.R_credit) / (self.LSTM_credit + self.R_credit)
 
-        if position == 0 and Predict_score > 0.7:
-            self.evt.consoleLog('Initial Buy')
-            self.doit(self.myinstrument, 1, self.ref, 100)
+        if position == 0:
+            if Predict_score > 0.5:
+                self.evt.consoleLog('Initial Buy')
+                self.doit(self.myinstrument, 1, self.ref, 50)
+            elif Predict_score < -0.5:
+                self.evt.consoleLog('Initial Sell')
+                self.doit(self.myinstrument, -1, self.ref, 50)
 
         else:
             if HT > OSP and TC < RSP and Predict_score < - 0.7:
                 self.evt.consoleLog('Sell')
-                self.doit(self.myinstrument, -1, self.ref, abs(position) * 0.9)
+                if position < -30:
+                    self.doit(self.myinstrument, -1, self.ref, abs(position) * 0.5)
+                else:
+                    self.doit(self.myinstrument, -1, self.ref, abs(position) * 0.9)
             elif LT < OLP and TC > RLP and Predict_score > 0.7:
                 self.evt.consoleLog('Buy')
                 if position > 30:
@@ -506,16 +513,19 @@ class AlgoEvent:
                     self.doit(self.myinstrument, 1, self.ref, 50)
             elif Predict_score < -0.8:
                 self.evt.consoleLog('Sell')
-                self.doit(self.myinstrument, -1, self.ref, abs(position) * 0.9)
+                if position < -30:
+                    self.doit(self.myinstrument, -1, self.ref, abs(position) * 0.5)
+                else:
+                    self.doit(self.myinstrument, -1, self.ref, abs(position) * 0.9)
                       
             
-    # 当过去两天涨幅大于10%,平掉所有仓位止盈
-    #    if position and todayclose[-1]/ todayclose[-2] >= 1.10:
-    #        self.doit(self.myinstrument, -1, self.ref, position)
+    # 当过去两天涨幅大于5%,平掉所有仓位止盈
+        if position < 0 and todayclose[-1]/ todayclose[-2] >= 1.05:
+            self.doit(self.myinstrument, 1, self.ref, abs(position))
            
     # 当时间为周五并且跌幅大于5%时,平掉所有仓位止损
-        if position and todayclose[-1] / todayclose[-2] < 0.9 :
-            self.doit(self.myinstrument, -1, self.ref, position)
+        if position > 0 and todayclose[-1] / todayclose[-2] < 0.95 :
+            self.doit(self.myinstrument, -1, self.ref, abs(position))
             
 
         # --------------------------------------------
