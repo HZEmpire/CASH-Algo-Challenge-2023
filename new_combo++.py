@@ -492,36 +492,37 @@ class AlgoEvent:
                 self.doit(self.myinstrument, -1, self.ref, 50)
 
         else:
-            if HT > OSP and TC < RSP and Predict_score < - 0.5:
+            if HT > OSP and TC < RSP and Predict_score < - 0.7:
                 self.evt.consoleLog('Sell')
-                if position < -30:
-                    self.doit(self.myinstrument, -1, self.ref, abs(position) * 0.5)
-                else:
-                    self.doit(self.myinstrument, -1, self.ref, abs(position) * 0.9)
-            elif LT < OLP and TC > RLP and Predict_score > 0.5:
-                self.evt.consoleLog('Buy')
                 if position > 30:
-                    self.doit(self.myinstrument, 1, self.ref, abs(position) * 0.5)
+                    self.doit(self.myinstrument, -1, self.ref, abs(position) * 0.9)
+                else:
+                    self.doit(self.myinstrument, -1, self.ref, 50)
+            elif LT < OLP and TC > RLP and Predict_score > 0.7:
+                self.evt.consoleLog('Buy')
+                if position < -30:
+                    self.doit(self.myinstrument, 1, self.ref, abs(position) * 0.9)
                 else:
                     self.doit(self.myinstrument, 1, self.ref, 50)
             
-            # Case R-breaker is not accurate as LSTM
-            if Predict_score > 0.5:
-                self.evt.consoleLog('Buy')
-                if position > 30:
-                    self.doit(self.myinstrument, 1, self.ref, abs(position) * 0.5)
-                else:
-                    self.doit(self.myinstrument, 1, self.ref, 50)
-            elif Predict_score < -0.5:
-                self.evt.consoleLog('Sell')
-                if position < -30:
-                    self.doit(self.myinstrument, -1, self.ref, abs(position) * 0.5)
-                else:
-                    self.doit(self.myinstrument, -1, self.ref, abs(position) * 0.9)
+            # Case R-breaker is not accurate as LSTM and did not predict
+            if R_score == 0:
+                if Predict_score > 0.6:
+                    self.evt.consoleLog('Buy')
+                    if position > 30:
+                        self.doit(self.myinstrument, 1, self.ref, abs(position) * 0.5)
+                    else:
+                        self.doit(self.myinstrument, 1, self.ref, 50)
+                elif Predict_score < -0.6:
+                    self.evt.consoleLog('Sell')
+                    if position < -30:
+                        self.doit(self.myinstrument, -1, self.ref, abs(position) * 0.5)
+                    else:
+                        self.doit(self.myinstrument, -1, self.ref, 50)
                       
             
     # 当过去两天涨幅大于5%,平掉所有仓位止盈
-        if position < 0 and todayclose[-1]/ todayclose[-2] >= 1.05:
+        if position < 0 and todayclose[-1]/ todayclose[-2] > 1.05:
             self.doit(self.myinstrument, 1, self.ref, abs(position))
            
     # 当时间为周五并且跌幅大于5%时,平掉所有仓位止损
