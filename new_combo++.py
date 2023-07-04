@@ -492,13 +492,13 @@ class AlgoEvent:
                 self.doit(self.myinstrument, -1, self.ref, 50)
 
         else:
-            if HT > OSP and TC < RSP and Predict_score < - 0.7:
+            if HT > OSP and TC < RSP and Predict_score < - 0.5:
                 self.evt.consoleLog('Sell')
                 if position < -30:
                     self.doit(self.myinstrument, -1, self.ref, abs(position) * 0.5)
                 else:
                     self.doit(self.myinstrument, -1, self.ref, abs(position) * 0.9)
-            elif LT < OLP and TC > RLP and Predict_score > 0.7:
+            elif LT < OLP and TC > RLP and Predict_score > 0.5:
                 self.evt.consoleLog('Buy')
                 if position > 30:
                     self.doit(self.myinstrument, 1, self.ref, abs(position) * 0.5)
@@ -506,13 +506,13 @@ class AlgoEvent:
                     self.doit(self.myinstrument, 1, self.ref, 50)
             
             # Case R-breaker is not accurate as LSTM
-            if Predict_score > 0.7:
+            if Predict_score > 0.5:
                 self.evt.consoleLog('Buy')
                 if position > 30:
                     self.doit(self.myinstrument, 1, self.ref, abs(position) * 0.5)
                 else:
                     self.doit(self.myinstrument, 1, self.ref, 50)
-            elif Predict_score < -0.7:
+            elif Predict_score < -0.5:
                 self.evt.consoleLog('Sell')
                 if position < -30:
                     self.doit(self.myinstrument, -1, self.ref, abs(position) * 0.5)
