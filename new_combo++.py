@@ -484,10 +484,10 @@ class AlgoEvent:
         self.evt.consoleLog('Predict score: ' + str(Predict_score))
 
         if position == 0:
-            if LSTM_score > 0.7:
+            if LSTM_score > 0.5:
                 self.evt.consoleLog('Initial Buy')
                 self.doit(self.myinstrument, 1, self.ref, 50)
-            elif LSTM_score < -0.7:
+            elif LSTM_score < -0.5:
                 self.evt.consoleLog('Initial Sell')
                 self.doit(self.myinstrument, -1, self.ref, 50)
 
